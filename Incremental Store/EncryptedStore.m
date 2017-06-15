@@ -2947,18 +2947,25 @@ static void dbsqliteStripCaseDiacritics(sqlite3_context *context, int argc, cons
     }
     
     // run block
-    BOOL success = block();
-    
-    // end transaction
-    statement = [self preparedStatementForQuery:(success ? @"COMMIT;" : @"ROLLBACK;")];
-    sqlite3_step(statement);
-    if (sqlite3_finalize(statement) != SQLITE_OK) {
-        return NO;
+    BOOL success = NO;
+    NSException *localException = nil;
+    @try {
+        success = block();
+    } @catch (NSException *exception) {
+        localException = exception;
+    } @finally {
+        // end transaction
+        statement = [self preparedStatementForQuery:(success ? @"COMMIT;" : @"ROLLBACK;")];
+        sqlite3_step(statement);
+        if (sqlite3_finalize(statement) != SQLITE_OK) {
+            return NO;
+        }
     }
-    
+
+    if (localException) @throw localException;
+
     // return
     return success;
-    
 }
 
 - (NSString *)tableNameForEntity:(NSEntityDescription *)entity
