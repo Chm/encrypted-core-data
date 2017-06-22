@@ -2608,9 +2608,14 @@ static void dbsqliteStripCaseDiacritics(sqlite3_context *context, int argc, cons
             NSRelationshipDescription *desc = (NSRelationshipDescription *)prop;
             NSRelationshipDescription *inverse = [desc inverseRelationship];
             if ([desc isToMany] && [inverse isToMany]) {
-                
+
+                NSString *column = [[self rootForEntity:[desc entity]] name];
+                if ([[self rootForEntity:desc.entity] isEqual:[self rootForEntity:desc.destinationEntity]]) {
+                    column = [column stringByAppendingString:@"_1"];
+                }
+
                 NSString *string = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@__objectid=?;",
-                                    [self tableNameForRelationship:desc],[[self rootForEntity:[desc entity]] name]];
+                                    [self tableNameForRelationship:desc], column];
                 sqlite3_stmt *statement = [self preparedStatementForQuery:string];
                 NSNumber *number = [self referenceObjectForObjectID:[object objectID]];
                 sqlite3_bind_int64(statement, 1, [number unsignedLongLongValue]);
